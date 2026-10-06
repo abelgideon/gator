@@ -88,6 +88,18 @@ func handlerRegister(s *state, cmd command) error {
 	return nil
 }
 
+func handlerReset(s *state, cmd command) error {
+	if len(cmd.args) > 0 {
+		return fmt.Errorf("reset does not take arguments")
+	}
+
+	err := s.db.DeleteUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("something went wrong: %v", err)
+	}
+	return nil
+}
+
 func main() {
 	conf, err := config.Read()
 	if err != nil {
@@ -114,6 +126,7 @@ func main() {
 
 	myCommands.register("login", handlerLogin)
 	myCommands.register("register", handlerRegister)
+	myCommands.register("reset", handlerReset)
 
 	userArgs := os.Args
 	if len(userArgs) < 2 {
