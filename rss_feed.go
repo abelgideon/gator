@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/abelgideon/blog-aggregator/internal/database"
+	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 type RSSFeed struct {
@@ -93,7 +95,28 @@ func scrapeFeeds(s *state) error {
 	}
 
 	for _, f := range feedRec.Channel.Item {
-		fmt.Println("Title:", f.Title)
+		parsedPubDate, err := time.Parse(time.RFC1123, f.PubDate)
+		isValid := err == nil
+
+		_, createPostErr := s.db.CreatePost(context.Background(), database.CreatePostParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			Title:       f.Title,
+			Url:         f.Link,
+			Description: sql.NullString{String: f.Description, Valid: true},
+			PublishedAt: sql.NullTime{Time: parsedPubDate, Valid: isValid},
+			FeedID:      feed.ID,
+		})
+
+		if createPostErr != nil {
+			pqErr, ok := createPostErr.(*pq.Error)
+			if ok && pqErr.Code == "23505" {
+				continue
+			} else {
+				fmt.Println("error creating post:", createPostErr)
+			}
+		}
 	}
 	return nil
 }

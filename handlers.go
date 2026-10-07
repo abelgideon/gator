@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -231,6 +232,45 @@ func handlerUnfollow(s *state, cmd command, user database.User) error {
 	}
 
 	fmt.Printf("%v just unfollowed %v\n", user.Name, feed.Name)
+
+	return nil
+}
+
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	if len(cmd.args) != 0 && len(cmd.args) != 1 {
+		return fmt.Errorf("unexpected number of arguments")
+	}
+
+	limit := 2
+
+	if len(cmd.args) == 1 {
+		uLimit, err := strconv.Atoi(cmd.args[0])
+		if err != nil {
+			return fmt.Errorf("limit should be a number: %v", err)
+		}
+
+		limit = uLimit
+	}
+
+	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit:  int32(limit),
+	})
+	if err != nil {
+		return fmt.Errorf("error fetching posts: %v", err)
+	}
+
+	for _, p := range posts {
+		fmt.Println(p.Title)
+		fmt.Println()
+		if p.Description.Valid {
+			fmt.Println("-", p.Description.String)
+		}
+		if p.PublishedAt.Valid {
+			fmt.Println("Published at:", p.PublishedAt.Time)
+		}
+		fmt.Println()
+	}
 
 	return nil
 }
