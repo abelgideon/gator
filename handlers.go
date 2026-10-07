@@ -97,3 +97,35 @@ func handlerAgg(s *state, cmd command) error {
 	fmt.Println(rssFeed)
 	return nil
 }
+
+func handlerAddFeed(s *state, cmd command) error {
+	if len(cmd.args) != 2 {
+		return fmt.Errorf("unexpected amount of arguments")
+	}
+
+	currUser, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+	if err != nil {
+		return fmt.Errorf("error fetching user: %v", err)
+	}
+
+	feed, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name:      cmd.args[0],
+		Url:       cmd.args[1],
+		UserID:    currUser.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("error creating feed: %v", err)
+	}
+
+	fmt.Println("ID:", feed.ID)
+	fmt.Println("Name:", feed.Name)
+	fmt.Println("URL:", feed.Url)
+	fmt.Println("User ID:", feed.UserID)
+	fmt.Println("Created At:", feed.CreatedAt)
+	fmt.Println("Updated At:", feed.UpdatedAt)
+
+	return nil
+}
