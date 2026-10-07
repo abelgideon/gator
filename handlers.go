@@ -98,49 +98,6 @@ func handlerAgg(s *state, cmd command) error {
 	return nil
 }
 
-func handlerAddFeed(s *state, cmd command) error {
-	if len(cmd.args) != 2 {
-		return fmt.Errorf("unexpected amount of arguments")
-	}
-
-	currUser, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("error fetching user: %v", err)
-	}
-
-	feed, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
-		ID:        uuid.New(),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		Name:      cmd.args[0],
-		Url:       cmd.args[1],
-		UserID:    currUser.ID,
-	})
-	if err != nil {
-		return fmt.Errorf("error creating feed: %v", err)
-	}
-
-	_, feedFollowErr := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
-		ID:        uuid.New(),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-		UserID:    currUser.ID,
-		FeedID:    feed.ID,
-	})
-	if feedFollowErr != nil {
-		return fmt.Errorf("failed to follow feed: %v", feedFollowErr)
-	}
-
-	fmt.Println("ID:", feed.ID)
-	fmt.Println("Name:", feed.Name)
-	fmt.Println("URL:", feed.Url)
-	fmt.Println("User ID:", feed.UserID)
-	fmt.Println("Created At:", feed.CreatedAt)
-	fmt.Println("Updated At:", feed.UpdatedAt)
-
-	return nil
-}
-
 func handlerFeeds(s *state, cmd command) error {
 	if len(cmd.args) > 0 {
 		return fmt.Errorf("feeds does not take arguments")
@@ -167,7 +124,45 @@ func handlerFeeds(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollow(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command, user database.User) error {
+	if len(cmd.args) != 2 {
+		return fmt.Errorf("unexpected amount of arguments")
+	}
+
+	feed, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		Name:      cmd.args[0],
+		Url:       cmd.args[1],
+		UserID:    user.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("error creating feed: %v", err)
+	}
+
+	_, feedFollowErr := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID:    user.ID,
+		FeedID:    feed.ID,
+	})
+	if feedFollowErr != nil {
+		return fmt.Errorf("failed to follow feed: %v", feedFollowErr)
+	}
+
+	fmt.Println("ID:", feed.ID)
+	fmt.Println("Name:", feed.Name)
+	fmt.Println("URL:", feed.Url)
+	fmt.Println("User ID:", feed.UserID)
+	fmt.Println("Created At:", feed.CreatedAt)
+	fmt.Println("Updated At:", feed.UpdatedAt)
+
+	return nil
+}
+
+func handlerFollow(s *state, cmd command, user database.User) error {
 	if len(cmd.args) != 1 {
 		return fmt.Errorf("unexpected number of arguments")
 	}
@@ -175,11 +170,6 @@ func handlerFollow(s *state, cmd command) error {
 	feed, err := s.db.GetFeedByUrl(context.Background(), cmd.args[0])
 	if err != nil {
 		return fmt.Errorf("error fetching feed: %v", err)
-	}
-
-	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("error fetching user: %v", err)
 	}
 
 	feedFollow, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
@@ -198,14 +188,9 @@ func handlerFollow(s *state, cmd command) error {
 	return nil
 }
 
-func handlerFollowing(s *state, cmd command) error {
+func handlerFollowing(s *state, cmd command, user database.User) error {
 	if len(cmd.args) > 0 {
 		return fmt.Errorf("following takes no arguments")
-	}
-
-	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("error fetching user: %v", err)
 	}
 
 	follows, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
