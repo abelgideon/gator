@@ -85,17 +85,24 @@ func handlerUsers(s *state, cmd command) error {
 }
 
 func handlerAgg(s *state, cmd command) error {
-	if len(cmd.args) > 0 {
-		return fmt.Errorf("agg does not take arguments")
+	if len(cmd.args) != 1 {
+		return fmt.Errorf("unexpected number of arguments")
 	}
 
-	rssFeed, err := fetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+	timeBetweenRequests, err := time.ParseDuration(cmd.args[0])
 	if err != nil {
-		return err
+		return fmt.Errorf("error parsing duration: %v", err)
 	}
 
-	fmt.Println(rssFeed)
-	return nil
+	fmt.Printf("Collecting feeds every %v\n", timeBetweenRequests)
+
+	ticker := time.NewTicker(timeBetweenRequests)
+	for ; ; <-ticker.C {
+		err := scrapeFeeds(s)
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
 }
 
 func handlerFeeds(s *state, cmd command) error {
