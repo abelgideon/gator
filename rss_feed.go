@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/abelgideon/blog-aggregator/internal/database"
+	"github.com/abelgideon/gator/internal/database"
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 )

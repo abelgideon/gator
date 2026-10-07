@@ -1,4 +1,4 @@
-module github.com/abelgideon/blog-aggregator
+module github.com/abelgideon/gator
 
 go 1.26.8
 
