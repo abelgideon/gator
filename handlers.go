@@ -120,6 +120,17 @@ func handlerAddFeed(s *state, cmd command) error {
 		return fmt.Errorf("error creating feed: %v", err)
 	}
 
+	_, feedFollowErr := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID:    currUser.ID,
+		FeedID:    feed.ID,
+	})
+	if feedFollowErr != nil {
+		return fmt.Errorf("failed to follow feed: %v", feedFollowErr)
+	}
+
 	fmt.Println("ID:", feed.ID)
 	fmt.Println("Name:", feed.Name)
 	fmt.Println("URL:", feed.Url)
@@ -151,6 +162,59 @@ func handlerFeeds(s *state, cmd command) error {
 		fmt.Printf("Created by: %v\n", user.Name)
 
 		fmt.Println()
+	}
+
+	return nil
+}
+
+func handlerFollow(s *state, cmd command) error {
+	if len(cmd.args) != 1 {
+		return fmt.Errorf("unexpected number of arguments")
+	}
+
+	feed, err := s.db.GetFeedByUrl(context.Background(), cmd.args[0])
+	if err != nil {
+		return fmt.Errorf("error fetching feed: %v", err)
+	}
+
+	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+	if err != nil {
+		return fmt.Errorf("error fetching user: %v", err)
+	}
+
+	feedFollow, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID:        uuid.New(),
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+		UserID:    user.ID,
+		FeedID:    feed.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("error following feed: %v", err)
+	}
+
+	fmt.Printf("%v just followed %v\n", feedFollow.UserName, feedFollow.FeedName)
+
+	return nil
+}
+
+func handlerFollowing(s *state, cmd command) error {
+	if len(cmd.args) > 0 {
+		return fmt.Errorf("following takes no arguments")
+	}
+
+	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+	if err != nil {
+		return fmt.Errorf("error fetching user: %v", err)
+	}
+
+	follows, err := s.db.GetFeedFollowsForUser(context.Background(), user.ID)
+	if err != nil {
+		return fmt.Errorf("error fetching follows: %v", err)
+	}
+
+	for _, follow := range follows {
+		fmt.Println("*", follow.FeedName)
 	}
 
 	return nil
